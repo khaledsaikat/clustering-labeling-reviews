@@ -3,3 +3,4 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from aspects import helpers
+from aspects.cluster_label import ClusterLabel

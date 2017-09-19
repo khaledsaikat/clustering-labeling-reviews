@@ -6,11 +6,12 @@ from pprint import pprint
 import gensim
 from textblob import TextBlob, WordList
 
-from . import data_loader as dl
+import data_loader as dl
 '''
+For interactive loading load python3 from aspects directory
 To Use Word2Vec:
 python3
-from aspects import similar
+import similar
 similar.loadWord2VecModel()
 model = similar.WORD2VEC_MODEL
 similar.loadSimilarity()
@@ -50,47 +51,37 @@ class Similarity:
 
     tokens = {}
 
-    topNTokens = {}
-
-    topN = 100
+    topTokens = {}
 
     similarTokens = []
 
-
-    def __init__(self, tokens):
-        self.tokens = tokens
-        self.filterNonWords()
-        self.setTopNTokens()
-
-
-    def getSimilarTokens(self):
-        similarity = list(self.getTokensSimilarity())
-        self.groupSimilarTokens(similarity)
-        self.sortSimilarTokens()
-        return self.similarTokens
+    def __init__(self, tokens, topTokens):
+        self.tokens = self.filterNonWords(tokens)
+        self.setTopTokens(topTokens)
+        self.similarTokens = []
 
 
-    def setTopNTokens(self):
+    def setTopTokens(self, topTokens):
         '''Set top N tokens with removing adjective and adverb
 
         Don't apply filterAdjAdv to all tokens because it leads to remove important tokens whose are good for sililarity counting
         '''
-        #tokens = Counter(self.filterAdjAdv())
-        self.topNTokens = Counter({v[0]:v[1] for v in self.tokens.most_common(self.topN)})
+        self.topTokens = self.filterAdjAdv(self.filterNonWords(dict(topTokens)))
 
 
-    def filterNonWords(self):
+    def filterNonWords(self, tokens):
         '''Filter tokens which are not available on word2vec model'''
-        self.tokens = Counter({token: weight for token, weight in self.tokens.items() if getWord2VecSimilarity("word", token) is not False})
+        return {token: weight for token, weight in tokens.items() if getWord2VecSimilarity("word", token) is not False}
 
 
-    def filterAdjAdv(self):
-        return {token: weight for token, weight in self.tokens.items() if TextBlob(token).tags[0][1] not in ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS']}
+    def filterAdjAdv(self, tokens):
+        return tokens
+        return {token: weight for token, weight in tokens.items() if TextBlob(token).tags[0][1] not in ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS']}
 
 
     def getTokenCombination(self):
         '''Get combination of tokens for top n tokens'''
-        return (v for v in itertools.combinations(self.tokens.keys(), 2) if v[0] in self.topNTokens or v[1] in self.topNTokens)
+        return (v for v in itertools.combinations(self.tokens.keys(), 2) if v[0] in self.topTokens or v[1] in self.topTokens)
 
 
     def getTokensSimilarity(self, minSimilarity=0.5):
@@ -128,11 +119,30 @@ class Similarity:
         self.similarTokens = [sorted(tokens, key=lambda x: self.tokens[x], reverse=True) for tokens in self.similarTokens]
 
 
+    def getSimilarTokens(self):
+        similarity = list(self.getTokensSimilarity())
+        self.groupSimilarTokens(similarity)
+        #print(self.similarTokens)
+        #pprint(self.tokens)
+        self.sortSimilarTokens()
+        return self.similarTokens
+
+
+    def getReplacableTokens(self):
+        '''Return dict {token_to_replace: replaced_token}'''
+        self.getSimilarTokens()
+        return {token:tokens[0] for tokens in self.similarTokens for token in tokens}
+
+
 def loadSimilarity():
-    data = dl.loadJsonFromFile("data/headphone_tokens.json")
+    data = dl.loadJsonFromFile("../data/tokens.json")
     #s = Similarity({token: weight for k, v in data.items() for token, weight in v.items()})
-    s = Similarity(data["noise cancellation"])
+    cluster = data["color"]
+    print(Counter(cluster).most_common(10))
+    s = Similarity(cluster, Counter(cluster).most_common(10))
     pprint(s.getSimilarTokens())
+    pprint(s.getReplacableTokens())
+    print(s.topTokens)
 
 
 if __name__ == "__main__":
