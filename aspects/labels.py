@@ -3,6 +3,7 @@ import math
 import itertools
 from collections import Counter
 from pprint import pprint
+import operator
 
 from nltk.corpus import stopwords
 import gensim
@@ -93,6 +94,7 @@ class TFIDF:
         return math.log(len(self.clusters) / (1 + self._sumTFExcludingSelfCluster()))
 
 
+
 class Labels:
     '''Determine label for each clusters
 
@@ -101,6 +103,8 @@ class Labels:
     :param tokensWeight: [for cluster in clusters for token, weight in cluster.items()]
     :param docs: [for sentence in all_sentences for token in sentence]
     '''
+    rawClusters = []
+
     clusters = []
 
     tokenizedClusters = []
@@ -111,13 +115,21 @@ class Labels:
 
     def __init__(self, clusters):
         '''Contains clusters as a list. Each cluster contains list of lines'''
+        self.rawClusters = clusters
         self.clusters = clusters
         self.normalize()
         self.tokenize()
         self.assignTokensWeight()
+        #self.printProperties()
         #self.showTopTokens()
         #self.writeTokensWeight()
 
+    def printProperties(self):
+        print("rawClusters:", self.rawClusters)
+        print("clusters:", self.clusters)
+        print("tokenizedClusters", self.tokenizedClusters)
+        print("tokensWeight", self.tokensWeight)
+        print("docs", self.docs)
 
     def normalize(self):
         '''Normalize each doc in cluster'''
@@ -204,6 +216,27 @@ class Labels:
         return similar.Similarity(self.tokensWeight[i], Counter(self.tokensWeight[i]).most_common(10))
 
 
+    def getLabelSentance(self):
+        sentWeightClusters = [[self._sentWeight(sent, clusterIndex) for sent in cluster] for clusterIndex, cluster in enumerate(self.clusters)]
+        for clusterIndex, sentWeightList in enumerate(sentWeightClusters):
+            sentIndex, value = self.maxListValueIndex(sentWeightList)
+            print(clusterIndex, self.rawClusters[clusterIndex][sentIndex])
+
+
+    def maxListValueIndex(self, myList):
+        '''Return max value of a list and its index
+        :return index, value
+        '''
+        return max(enumerate(myList), key=operator.itemgetter(1))
+
+
+    def _sentWeight(self, sent, clusterIndex):
+        if len(sent.words) is 0:
+            return 0
+        return sum(self.tokensWeight[clusterIndex][word] for word in sent.words) / len(sent.words)
+
+
+
     def recalculateTIFID(self, replacableTokens, i):
         TFIDF.clusters = self.replaceSimilarTokensInClusters(replacableTokens)#self.tokenizedClusters
         TFIDF.docs = self.replaceSimilarTokensInDocs(replacableTokens)#self.docs
@@ -254,10 +287,10 @@ def inspectLabels():
     #i = 11
     #cl.getSimilarTokens(i)
     #print('Aspect Name:', [k for k, v in data.items()][i])
-
     for i in range(len(clusters)):
-        print([k for k, v in data.items()][i])
-        cl.getSimilarTokens(i)
+        print(i, [k for k, v in data.items()][i])
+        #cl.getSimilarTokens(i)
+    cl.getLabelSentance()
 
 
 
