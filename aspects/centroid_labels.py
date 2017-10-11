@@ -12,7 +12,7 @@ from textblob import TextBlob
 For interactive loading, load python3 from aspects directory
 ```
 import word2vec as w2v
-import cluster_labels as cl
+import centroid_labels as cl
 w2v.load_word2vec_model()
 cl.inspect_labels()
 ```
