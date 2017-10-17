@@ -146,46 +146,6 @@ class ClustersTokensWeight:
         return self.clusters_tokens_weights
 
 
-class UnigramCentroidLabel:
-    idf_weights: Dict[Term, float] = {}
-
-    clusters_documents: List[DocumentsCluster] = []
-
-    clusters_tokens_weights: List[Dict[Term, float]] = []
-
-    clusters_docs_weight: List[List[float]] = []
-
-    def __init__(self, clusters: List[DocumentsCluster]):
-        self.clusters_documents = clusters
-        self.tokenized_clusters = TokenizeClusters(clusters)
-        self.idf_weights = idf_tokens_weights(self.tokenized_clusters)
-        self.calculate_tokens_weights()
-
-    def calculate_tokens_weights(self):
-        self.clusters_tokens_weights = [{token: self.__calculate_tfidf(token, cluster) for token in cluster} for cluster
-                                        in self.tokenized_clusters.tokens_clusters]
-
-    def __calculate_tfidf(self, token: Term, cluster: TokensCluster):
-        tf = TFIDF(token, cluster).tf
-        return tf * self.idf_weights[token]
-
-    def calculate(self):
-        self.clusters_docs_weight = [self.calculate_sentence_weight(cluster, index) for index, cluster in
-                                     enumerate(self.tokenized_clusters.documents_clusters)]
-
-    def calculate_sentence_weight(self, cluster: TokenizeDocCluster, cluster_index: int) -> List[float]:
-        return [sum(self.clusters_tokens_weights[cluster_index][token] for token in doc) for doc in cluster]
-
-    @staticmethod
-    def sentence_weight(tokenize_sentence: List[int]):
-        return tokenize_sentence
-
-        # @staticmethod
-        # def __max_list_value(my_list: List[float]) -> Tuple(int, float):
-        #    """Return max value of a list and its index (index:value)"""
-        #    return max(enumerate(my_list), key=operator.itemgetter(1))
-
-
 class UnigramSentenceWeightModel:
     """Clusters of unigram weighted sentences"""
 
@@ -249,8 +209,8 @@ class ClustersLabels:
     def __init__(self, raw_clusters: List[List[str]]):
         self.raw_clusters: List[List[str]] = raw_clusters
         self.clusters_documents: List[DocumentsCluster] = NormalizeClusters(raw_clusters).clusters
-        self.clusters_weights = UnigramSentenceWeightModel(self.clusters_documents).clusters
-        #self.clusters_weights = MultigramSentenceWeightModel(self.clusters_documents).clusters
+        self.clusters_weights: List[List[float]] = UnigramSentenceWeightModel(self.clusters_documents).clusters
+        # self.clusters_weights: List[List[float]] = MultigramSentenceWeightModel(self.clusters_documents).clusters
 
     @staticmethod
     def __max_value(my_list) -> Tuple[int, float]:
@@ -267,15 +227,15 @@ class ClustersLabels:
                 enumerate(self.clusters_weights)]
 
 
-class W2VCentroidLabel:
-    cluster = []
+class W2VSingleCluster:
+    cluster: DocumentsCluster = []
 
     # 300 dimension numpy.ndarray
     docs_vector = []
 
     center = []
 
-    def __init__(self, cluster):
+    def __init__(self, cluster: DocumentsCluster):
         self.cluster = cluster
         self.doc_vector()
         self.calculate_centroid()
@@ -292,23 +252,24 @@ class W2VCentroidLabel:
     def distance(v1, v2):
         return sum((v1 - v2) ** 2)
 
-    def get_closest_doc_index(self):
+    def get_closest_doc_index(self) -> int:
         weights = [self.distance(self.center, vec) for vec in self.docs_vector]
         return min(enumerate(weights), key=operator.itemgetter(1))[0]
 
+    @property
+    def doc_index(self) -> int:
+        return self.get_closest_doc_index()
 
-class CentroidLabel(W2VCentroidLabel):
-    """Act as a wrapper of parent class, so that we can change parent according to need"""
-    pass
 
+class W2VClustersLabels:
+    def __init__(self, raw_clusters: List[List[str]]):
+        self.raw_clusters: List[List[str]] = raw_clusters
+        self.clusters_documents: List[DocumentsCluster] = NormalizeClusters(raw_clusters).clusters
 
-class ClustersCentroidLabels:
-    def __init__(self, clusters: List[List[str]]):
-        self.raw_clusters: List[List[str]] = clusters
-        self.clusters = NormalizeClusters(clusters).clusters
-
-    def process(self):
-        UnigramCentroidLabel(self.clusters)
+    @property
+    def clusters(self) -> List[Document]:
+        return [self.raw_clusters[cluster_index][W2VSingleCluster(cluster).doc_index] for cluster_index, cluster in
+                enumerate(self.clusters_documents)]
 
 
 def compare_labels(pre_labels: List[str], post_labels: List[str]):
@@ -327,13 +288,8 @@ def inspect_labels():
     pre_labels = [k for k, v in data.items()]
     raw_clusters = [v for k, v in data.items()]
 
-    # clusters = NormalizeClusters(raw_clusters).clusters
-    # clusters = TokenizeClusters(clusters).documents_clusters
-
-    # UnigramCentroidLabel(clusters)
-    # c = MultigramSentenceWeightModel(clusters).clusters
-
     labels = ClustersLabels(raw_clusters).clusters
+    # labels = W2VClustersLabels(raw_clusters).clusters
     compare_labels(pre_labels, labels)
 
 
