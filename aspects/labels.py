@@ -63,8 +63,8 @@ class TFIDF:
 
     def idf(self):
         #return self.tfBasedIDF()
-        #return self.cluserBasedIDF()
-        return self.docBasedIDF()
+        return self.cluserBasedIDF()
+        #return self.docBasedIDF()
 
 
     def _nClustersContainsToken(self):
@@ -92,6 +92,97 @@ class TFIDF:
 
     def tfBasedIDF(self):
         return math.log(len(self.clusters) / (1 + self._sumTFExcludingSelfCluster()))
+
+
+class SingleCluster:
+    '''Normalize and tokenize single cluster
+
+    :param cluster: List of normalized docs
+    '''
+    cluster = []
+
+    def __init__(self, cluster):
+        self.cluster = cluster
+        self.normalize()
+        self.combineTokens()
+        print(self.cluster)
+        print(self.tokenize())
+        print(self.combineTokens())
+
+
+    def normalize(self):
+        '''Normalize each doc in cluster'''
+        self.cluster = [self._normalize(doc) for doc in self.cluster]
+
+
+    def _normalize(self, doc):
+        '''Lower text, and filter stop words'''
+        doc = TextBlob(doc)
+        doc = doc.lower()
+        #doc = doc.correct()
+        doc = self._filterStopWords(doc)
+        return doc
+
+
+    def _filterStopWords(self, doc):
+        words = [word for word in doc.words if not word in stopwords.words('english')]
+        return TextBlob(" ".join(words))
+
+
+    def tokenize(self, nGram=1):
+        '''Tokenize words by docs'''
+        return [[tuple(x) for x in doc.ngrams(n=nGram)] for doc in self.cluster]
+
+
+    def combineTokens(self,  nGram=1):
+        '''Combine all tokens in a single list'''
+        return [token for doc in self.tokenize(nGram) for token in doc]
+
+
+class ClusterLabel:
+
+    clusters = []
+
+    def __init__(self, clusters):
+        self.clusters = clusters
+
+
+
+class NormalizeClusters:
+    '''Normalize all clusters
+
+    ???
+    :param rawClusters: Raw clusters [[sentence,sentence], [sentence,sentence]]
+    :param clusters: Normalized clusters [for cluster in clusters for sentence in cluster] [[sentence,sentence], [sentence,sentence]]
+    :param tokenizedClusters: [for cluster in clusters for token in cluster] [[token,token], [token,token]]
+    :param tokensWeight: [for cluster in clusters for token, weight in cluster.items()]
+    :param docs: Tokenized sentence collections [for sentence in all_sentences for token in sentence]
+    '''
+    clusters = []
+
+    def __init__(self, clusters):
+        '''Contains clusters as a list. Each cluster contains list of docs'''
+        self.clusters = clusters
+        self.normalize()
+
+
+    def normalize(self):
+        '''Normalize each doc in cluster'''
+        self.clusters = [[self._normalize(doc) for doc in cluster] for cluster in self.clusters]
+
+
+    def _normalize(self, doc):
+        '''Lower text, and filter stop words'''
+        doc = TextBlob(doc)
+        doc = doc.lower()
+        #doc = doc.correct()
+        doc = self._filterStopWords(doc)
+        return doc
+
+
+    def _filterStopWords(self, doc):
+        words = [word for word in doc.words if not word in stopwords.words("english")]
+        return TextBlob(" ".join(words))
 
 
 
@@ -273,7 +364,7 @@ def getLabelsObject():
 
 def inspectLabels():
     data = {
-        "a": ["I'm a  sound bit of a headphone/earphone snob.", "these are super cheap and mostly you get what you pay for."],
+        "a": ["I'm a  sound bit, of a headphone/earphone snob.", "these are super cheap. and mostly you get what you pay for."],
         "b": ["Unbelievable sound for the price", "they sound great and are built well."]
     }
 

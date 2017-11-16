@@ -14,7 +14,7 @@ class AgglomerativeClustering:
     For more details of parameters, see documentation of scipy.cluster.hierarchy.linkage and scipy.cluster.hierarchy.linkage.fcluster
     """
 
-    def __init__(self, criterion_threshold, criterion="distance", distance_metric="euclidean", linkage_method="ward"):
+    def __init__(self, criterion_threshold, linkage_method="ward", distance_metric="euclidean", criterion="distance"):
         self.criterion_threshold = criterion_threshold
         self.criterion = criterion
         self.distance_metric = distance_metric
@@ -41,6 +41,7 @@ class AgglomerativeClustering:
         plt.xlabel('sample index')
         plt.ylabel('distance')
         dendrogram(self.linkage_matrix)
+        plt.axhline(y=self.criterion_threshold, c="k")
         plt.show()
 
     @staticmethod
@@ -51,6 +52,16 @@ class AgglomerativeClustering:
         print(ac.fit_predict(X))
         print(ac.linkage_matrix)
         ac.dendrogram()
+
+
+def group_clustering_result(result, index_names=[]):
+    """Grouping result of clustering algorithm"""
+    groups = [[] for i in range(max(result) + 1)]
+    for index, value in enumerate(result):
+        groups[value].append(index)
+    if index_names:
+        return [[index_names[index] for index in group] for group in groups[1:]]
+    return groups[1:]
 
 
 if __name__ == "__main__":

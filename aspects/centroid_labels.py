@@ -209,8 +209,8 @@ class ClustersLabels:
     def __init__(self, raw_clusters: List[List[str]]):
         self.raw_clusters: List[List[str]] = raw_clusters
         self.clusters_documents: List[DocumentsCluster] = NormalizeClusters(raw_clusters).clusters
-        self.clusters_weights: List[List[float]] = UnigramSentenceWeightModel(self.clusters_documents).clusters
-        # self.clusters_weights: List[List[float]] = MultigramSentenceWeightModel(self.clusters_documents).clusters
+        #self.clusters_weights: List[List[float]] = UnigramSentenceWeightModel(self.clusters_documents).clusters
+        self.clusters_weights: List[List[float]] = MultigramSentenceWeightModel(self.clusters_documents).clusters
 
     @staticmethod
     def __max_value(my_list) -> Tuple[int, float]:
