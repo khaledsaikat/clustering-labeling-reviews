@@ -4,6 +4,7 @@ from typing import List
 
 import gensim
 import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 """Load word2vec trained model
 
@@ -37,17 +38,14 @@ def load_word2vec_model():
     WORD2VEC_MODEL = gensim.models.KeyedVectors.load_word2vec_format(WORD2VEC_SOURCE_PATH, binary=True)
 
 
-def similarity(word1: str, word2: str):
-    """Get similarity score between two words
+def similarity(sentence_word1: str, sentence_word2: str) -> float:
+    """Get similarity score between two words or sentences
 
-    :param word1: (string)
-    :param word2: (string)
+    :param sentence_word1: (string)
+    :param sentence_word2: (string)
     :return float
     """
-    try:
-        return WORD2VEC_MODEL.similarity(word1, word2)
-    except Exception as e:
-        return False
+    return cosine_similarity([mean_terms_vector(sentence_word1)], [mean_terms_vector(sentence_word2)])[0][0]
 
 
 def terms_vectors(terms: List[str]):
@@ -56,9 +54,11 @@ def terms_vectors(terms: List[str]):
     :param terms: (list)
     :return generator: vectors
     """
-    for term in terms:
-        if term in WORD2VEC_MODEL:
-            yield WORD2VEC_MODEL[term]
+    return [WORD2VEC_MODEL[term] for term in terms if term in WORD2VEC_MODEL]
+
+
+def valid_words(terms):
+    return [term for term in terms if term in WORD2VEC_MODEL]
 
 
 def combined_terms_vector(terms: List[str]):
@@ -77,8 +77,16 @@ def combined_terms_vector(terms: List[str]):
     return np.array(combined_vector)
 
 
+def sum_terms_vector(sentence: str):
+    sumed_vectors = np.zeros(300, dtype=np.float32)
+    for term_vec in terms_vectors(sentence.split()):
+        sumed_vectors = sumed_vectors + term_vec
+
+    return sumed_vectors
+
+
 def mean_terms_vector(sentence: str):
     """Get a term vector from sentence with averaging values"""
     vectors = list(terms_vectors(sentence.split()))
-    #return np.mean(vectors, axis=0) if vectors else 0
+    # return np.mean(vectors, axis=0) if vectors else 0
     return np.mean(vectors, axis=0) if vectors else np.zeros(300, dtype=np.float32)

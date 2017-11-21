@@ -1,6 +1,15 @@
 from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
 
+"""
+Cluster words:
+words = ['noise', 'sound', 'loud', 'cancel', 'canceling', 'cancellation', 'headphones', 'earbuds', 'earbud', 'ipod',
+        'cord', 'cable', 'cords', 'cables', 'jacket', 'cheap', 'price', 'color', 'plastic', 'tangle']
+X = np.array([model[w] for w in words])
+ac = AgglomerativeClustering(0.5, 'complete', 'cosine')
+group_result(ac.fit_predict(X))
+"""
+
 
 class AgglomerativeClustering:
     """
@@ -49,19 +58,25 @@ class AgglomerativeClustering:
         import numpy as np
         X = np.array([(3, 5), (3, 4), (5, 7), (3, 5), (6, 4)])
         ac = AgglomerativeClustering(3.5)
-        print(ac.fit_predict(X))
+        res = ac.fit_predict(X)
+        print(res)
+        print(group_result(res))
         print(ac.linkage_matrix)
         ac.dendrogram()
 
 
-def group_clustering_result(result, index_names=[]):
+def group_result(result, n_min_item=0, index_names=[]):
     """Grouping result of clustering algorithm"""
     groups = [[] for i in range(max(result) + 1)]
     for index, value in enumerate(result):
         groups[value].append(index)
     if index_names:
-        return [[index_names[index] for index in group] for group in groups[1:]]
-    return groups[1:]
+        result = [[index_names[index] for index in group] for group in groups[1:]]
+    else:
+        result = groups[1:]
+    if n_min_item > 1:
+        result = [items for items in result if len(items) >= n_min_item]
+    return result
 
 
 if __name__ == "__main__":
