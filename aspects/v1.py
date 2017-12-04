@@ -13,6 +13,8 @@ from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.pipeline import make_pipeline
+import operator
+from nltk.tokenize import sent_tokenize
 
 """
 TODO: Cluster tokens for bigram and trigram
@@ -25,6 +27,7 @@ TOKENS_CLUSTERS: List[List[int]] = []
 
 def init_vectorizer(documents, init_w2v_features=False):
     global VECTORIZER
+    #VECTORIZER = CountVectorizer(stop_words="english", ngram_range=(1, 3), binary=True)
     VECTORIZER = CountVectorizer(stop_words="english", min_df=2, max_df=0.5, ngram_range=(1, 3))
     VECTORIZER.fit(documents)
     tokens_clusters()
@@ -305,7 +308,8 @@ def run_cluster_sample():
     docs = list(set(doc for cluster in data.values() for doc in cluster))
     # cluster as whole text
     clusters_text = [" ".join(doc for doc in cluster) for cluster in data.values()]
-    run_analysis(docs, clusters_text)
+    sent_clusters = [cluster for cluster in data.values()]
+    run_analysis(docs, clusters_text, sent_clusters)
 
 
 def run_20ng_sample():
@@ -313,10 +317,11 @@ def run_20ng_sample():
     clusters = [fetch_20newsgroups(subset="train", categories=[cat]).data[:50] for cat in categories]
     docs = list(set(doc for cluster in clusters for doc in cluster))
     clusters_text = [" ".join(doc for doc in cluster) for cluster in clusters]
-    run_analysis(docs, clusters_text)
+    sent_clusters = [sent_tokenize(str(cluster)) for cluster in clusters]
+    run_analysis(docs, clusters_text, sent_clusters)
 
 
-def run_analysis(corpus_train: List[str], corpus_test: List[str]):
+def run_analysis(corpus_train: List[str], corpus_test: List[str], sent_clusters: List[List[str]]=[]):
     # Traning
     init_vectorizer(corpus_train)
     X = VECTORIZER.transform(corpus_train)
@@ -347,6 +352,24 @@ def run_analysis(corpus_train: List[str], corpus_test: List[str]):
     result = labeler.fit_predict(X)
     pprint(inspect_labels(result, 5))
 
+    print(X.toarray())
+    print(X.shape)
+
+    # Sent Labeling
+    for cluster_index, sent_cluster in enumerate(sent_clusters):
+        Y = VECTORIZER.transform(sent_cluster)
+        #print(Y.toarray())
+        sent_weights = []
+        for sent_index, sent in enumerate(sent_cluster):
+            v = Y[sent_index].multiply(X[cluster_index])
+            sent_weights.append(v.sum()/len(sent))
+        #print(sent_weights)
+        max_index = max(enumerate(sent_weights), key=operator.itemgetter(1))[0]
+        print(sent_cluster[max_index], "\n")
+
+
+
+
 
 def run_samples():
     corpus_train_samples = [
@@ -361,7 +384,9 @@ def run_samples():
         "test document for second time document collection",
         "This is a final one"
     ]
-    run_analysis(corpus_train_samples, corpus_test_samples)
+
+    sent_clusters = [corpus_test_samples, corpus_test_samples, corpus_test_samples]
+    run_analysis(corpus_train_samples, corpus_test_samples, sent_clusters)
 
 
 if __name__ == "__main__":
