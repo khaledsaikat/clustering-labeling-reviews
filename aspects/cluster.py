@@ -1,4 +1,3 @@
-from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
 
 """
@@ -21,6 +20,8 @@ class AgglomerativeClustering:
     We are not using sklearn.cluster.AgglomerativeClustering because it requires n_clusters parameter
 
     For more details of parameters, see documentation of scipy.cluster.hierarchy.linkage and scipy.cluster.hierarchy.linkage.fcluster
+
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.fcluster.html
     """
 
     def __init__(self, criterion_threshold, linkage_method="ward", distance_metric="euclidean", criterion="distance"):
@@ -44,9 +45,10 @@ class AgglomerativeClustering:
     def linkage_matrix(self):
         return self.linkage_matrix_
 
-    def dendrogram(self):
+    def dendrogram(self, title="HAC Dendrogram"):
+        from matplotlib import pyplot as plt
         """Showing dendrogram"""
-        plt.title('Hierarchical Agglomerative Clustering Dendrogram')
+        plt.title(title)
         plt.xlabel('sample index')
         plt.ylabel('distance')
         dendrogram(self.linkage_matrix)

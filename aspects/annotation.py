@@ -4,6 +4,8 @@ from textblob import TextBlob
 from pprint import pprint
 import helpers
 import data_loader as dl
+from typing import Dict, List
+from nltk.tokenize import sent_tokenize
 
 class Annotation:
 
@@ -207,6 +209,24 @@ class Annotation:
                 if text.find(s) != -1:
                     return line
             return False
+
+
+def group_products_reviews(reviews: List[Dict]) -> Dict[str, List]:
+    """Group reviews by product asin"""
+    products = {}
+    for review in reviews:
+        if review["asin"] not in products:
+            products[review["asin"]] = []
+        products[review["asin"]].append(review)
+
+    return products
+
+
+def write_structure_json(reviews: List[Dict], file_path: str):
+    """Write structure to annotate"""
+    data = [{sent: [] for sent in sent_tokenize(review["reviewText"])} for review in reviews]
+    dl.writeJsonToFile(data, file_path)
+
 
 
 

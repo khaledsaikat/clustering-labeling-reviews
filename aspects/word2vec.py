@@ -57,13 +57,13 @@ def terms_vectors(terms: List[str]):
     return [WORD2VEC_MODEL[term] for term in terms if term in WORD2VEC_MODEL]
 
 
-def valid_words(terms):
+def valid_words(terms: List[str]):
     return [term for term in terms if term in WORD2VEC_MODEL]
 
 
 def combined_terms_vector(terms: List[str]):
     """Combine several terms vectors into one
-    @deprecated
+    @deprecated use sum_terms_vector() instead
 
     :param terms: (list)
     :return numpy.ndarray
@@ -72,14 +72,20 @@ def combined_terms_vector(terms: List[str]):
     combined_vector = np.zeros(300, dtype=np.float32)
     for term_vec in terms_vec:
         combined_vector = combined_vector + term_vec
-    # TODO use average of vectors using np.mean
 
     return np.array(combined_vector)
 
 
-def sum_terms_vector(sentence: str):
+def sum_terms_vector(terms):
+    """
+    Summing terms vector together
+    :param terms: List or string
+    :return:
+    """
+
+    terms = terms.split() if type(terms) is str else terms
     sumed_vectors = np.zeros(300, dtype=np.float32)
-    for term_vec in terms_vectors(sentence.split()):
+    for term_vec in terms_vectors(terms):
         sumed_vectors = sumed_vectors + term_vec
 
     return sumed_vectors

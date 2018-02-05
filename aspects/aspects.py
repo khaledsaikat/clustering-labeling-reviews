@@ -101,5 +101,5 @@ class Aspects:
 
 if __name__ == "__main__":
     a = Aspects()
-    a.setReviews(dl.loadJsonByAspectBraces("data/kindle501.json"))
+    a.setReviews(dl.loadJsonByAspectBraces("data/kindle50_1.json"))
     a.run()

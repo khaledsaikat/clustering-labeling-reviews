@@ -14,6 +14,7 @@ from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.pipeline import make_pipeline
+import re
 
 """
 TODO: Cluster tokens for bigram and trigram
@@ -26,7 +27,7 @@ TOKENS_CLUSTERS: List[List[int]] = []
 
 def init_vectorizer(documents, init_w2v_features=False):
     global VECTORIZER
-    # VECTORIZER = CountVectorizer(stop_words="english")
+    #VECTORIZER = CountVectorizer(stop_words="english")
     VECTORIZER = CountVectorizer(stop_words="english", min_df=2, max_df=0.5, ngram_range=(1, 3))
     VECTORIZER.fit(documents)
     tokens_clusters()
@@ -123,6 +124,11 @@ class SimilarTFTransformer(BaseEstimator):
         print(__class__, "target_indices_columns\n", target_indices_columns.toarray())
         return self.__replace_columns(X, target_indices_columns)
 
+    def transform_same(self, X):
+        target_indices_columns = self.__build_target_indices_columns(X, self.__transform_row_max_same)
+        print(__class__, "target_indices_columns\n", target_indices_columns.toarray())
+        return self.__replace_columns(X, target_indices_columns)
+
     def filter_similar(self, X):
         """Filter similar tokens with assigning zero value"""
         X = lil_matrix(X)
@@ -162,6 +168,16 @@ class SimilarTFTransformer(BaseEstimator):
         return [bin if index is max_index else 0 for index, value in enumerate(row)]
 
     @staticmethod
+    def __transform_row_max_same(row) -> List:
+        """Transform row. Replace values with max value
+
+        e.g: Transfor [0, 4, 3] to [4, 4, 4], [0, 1 ,0] to [1, 1 ,1], [0, 0 ,0] to [0, 0, 0]
+        :param row ndarray:
+        """
+        max_value = max(row)
+        return [max_value for index, value in enumerate(row)]
+
+    @staticmethod
     def __transform_row_summed_zero(row) -> List:
         """Transform row. Replace max value with summed value and other values with zero
 
@@ -176,6 +192,7 @@ class SimilarTFTransformer(BaseEstimator):
         """Transform row. Replace values with summed value
 
         e.g: Transfor [0, 4, 3] to [7, 7, 7]
+        :param row ndarray:
         """
         row_sum = sum(row)
         return [row_sum for index, value in enumerate(row)]
@@ -320,12 +337,20 @@ def run_cluster_sample():
 
 
 def run_20ng_sample():
-    categories = ["alt.atheism", "soc.religion.christian", "comp.graphics", "sci.med"]
+    categories = ["soc.religion.christian", "rec.sport.hockey", "rec.autos", "sci.space"]
     clusters = [fetch_20newsgroups(subset="train", categories=[cat]).data[:50] for cat in categories]
+    clusters = [[_cleanup_20ng_doc(doc) for doc in cluster] for cluster in clusters]
     docs = list(set(doc for cluster in clusters for doc in cluster))
     clusters_text = [" ".join(doc for doc in cluster) for cluster in clusters]
     sent_clusters = [sent_tokenize(str(cluster)) for cluster in clusters]
     run_analysis(docs, clusters_text, sent_clusters)
+
+
+def _cleanup_20ng_doc(document: str):
+    document = re.sub("From:.+\n", "", document)
+    document = re.sub("Lines:.+\n", "", document)
+    document = document.replace("\n", " ")
+    return document
 
 
 def run_analysis(corpus_train: List[str], corpus_test: List[str], sent_clusters: List[List[str]] = []):
@@ -347,8 +372,25 @@ def run_analysis(corpus_train: List[str], corpus_test: List[str], sent_clusters:
     print("TestVECTORIZER\n", X.toarray())
     stft = SimilarTFTransformer()
     X = stft.fit_transform(X)
-    X = tfidf.transform(X)
-    # print("TfIdf:", X.toarray())
+    X_tfidf = tfidf.transform(X)
+    #print("TfIdf:", X_tfidf.toarray())
+    #print(type(X_tfidf))
+    #print(X_tfidf[0].toarray())
+    #print(X_tfidf[0].toarray())
+    #print(list(X_tfidf[0]))
+
+    #VECTORIZER.set_params(binary=True)
+    #X1 = VECTORIZER.transform(corpus_test)
+    #print(X1.toarray())
+    #X1 = stft.transform_same(X1)
+    #print(X1.toarray())
+    #X2 = lil_matrix(X1, dtype="float64")
+    #for row_index in range(X2.shape[0]):
+    #    X2[row_index] = X2[row_index].multiply(X_tfidf[0])
+
+    #print(X2.toarray())
+
+    #return
 
     pipeline = make_pipeline(CombineGramTransformer())
     X = pipeline.transform(X)
@@ -362,7 +404,7 @@ def run_analysis(corpus_train: List[str], corpus_test: List[str], sent_clusters:
     print(X.toarray())
     print(X.shape)
 
-    # Sent Labeling
+    # Sentences Labeling
     for cluster_index, sent_cluster in enumerate(sent_clusters):
         Y = VECTORIZER.transform(sent_cluster)
         # print(Y.toarray())
@@ -371,8 +413,12 @@ def run_analysis(corpus_train: List[str], corpus_test: List[str], sent_clusters:
             v = Y[sent_index].multiply(X[cluster_index])
             sent_weights.append(v.sum() / len(sent))
         # print(sent_weights)
-        max_index = max(enumerate(sent_weights), key=operator.itemgetter(1))[0]
-        print(sent_cluster[max_index], "\n")
+        # max_index = max(enumerate(sent_weights), key=operator.itemgetter(1))[0]
+        sorted_sentences = sorted(enumerate(sent_weights), key=operator.itemgetter(1), reverse=True)
+        #print(sent_cluster[max_index], "\n")
+        for sorted_sent_index, sorted_sent_weight in sorted_sentences[:10]:
+            print(sent_cluster[sorted_sent_index], sorted_sent_weight, "\n")
+        print("\n\n");
 
 
 def run_samples():

@@ -18,6 +18,17 @@ def loadJsonByLine(file_path):
         return [json.loads(line) for line in json_file]
 
 
+def load_json_by_line(file_path: str, max_items: int = 100):
+    """Load reviews from a json file and return as a generator."""
+    with open(file_path) as json_file:
+        item_count = 0
+        for line in json_file:
+            item_count += 1
+            if item_count > max_items:
+                return
+            yield json.loads(line)
+
+
 def loadJsonByBraces(file_path):
     """Load json from file and return as list.
     Json is seperated by curly brackets. Consider only simple json
