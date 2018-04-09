@@ -19,10 +19,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, Tf
 from sklearn.pipeline import make_pipeline
 
 
-def get_kindle_clusters() -> List[List[str]]:
-    """Get sentences as a list"""
-    reviews = dl.load_json_from_file("../data/kindle_500.json")
-    return [sent[1] for review in reviews for sent in enumerate(review)]
+def get_headphone_reviews():
+    data = dl.load_json_from_file("../data/headphone100.json")
+    return [review["reviewText"] for review in data]
+
+
+def get_kindle_reviews():
+    data = dl.load_json_from_file("../data/kindle_500.json")
+    return [" ".join([sent for sent, aspects in review.items()]) for review in data]
 
 
 def get_headphone_clusters() -> List[List[str]]:
@@ -30,19 +34,46 @@ def get_headphone_clusters() -> List[List[str]]:
     return [cluster[0] for cluster in data]
 
 
-def get_headphone_reviews():
-    data = dl.load_json_from_file("../data/headphone100.json")
-    return [review["reviewText"] for review in data]
+def get_kindle_clusters() -> List[List[str]]:
+    """Get sentences as a list"""
+    data = dl.load_json_from_file("../data/kindle_500_clusters.json")
+    return [cluster[0] for cluster in data]
+
+
+def get_headphone_gold_labels():
+    data = dl.load_json_from_file("../data/headphone_100_clusters.json")
+    return [cluster[1] for cluster in data]
+
+
+def get_kindle_gold_labels():
+    data = dl.load_json_from_file("../data/kindle_500_clusters.json")
+    return [cluster[1] for cluster in data]
+
+
+def get_reviews():
+    return get_kindle_reviews()
+    #return get_headphone_reviews()
+
+
+def get_clusters():
+    return list(get_kindle_clusters())
+    #return list(get_headphone_clusters())
+
+
+def get_gold_labels():
+    return get_kindle_gold_labels()
+    #return get_headphone_gold_labels()
 
 
 def baseline_labeling():
     """Baseline labeling"""
-    reviews = get_headphone_reviews()
-    tfidf_vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(2, 2))
+    reviews = get_reviews()
+    tfidf_vectorizer = TfidfVectorizer(stop_words=STOPWORDS, ngram_range=(1, 1))
+    #tfidf_vectorizer = TfidfVectorizer(tokenizer=utils.noun_phrase_tokenizer) # Using noun phrase as term
     tfidf_vectorizer.fit(reviews)
     features = tfidf_vectorizer.get_feature_names()
 
-    clusters = list(get_headphone_clusters())
+    clusters = list(get_clusters())
     del clusters[-1]
     text_clusters = [" ".join(cluster) for cluster in clusters]
     vectorized_clusters = tfidf_vectorizer.transform(text_clusters)
@@ -52,17 +83,18 @@ def baseline_labeling():
         weights = sorted(enumerate(vectorized_cluster.tolist()[0]), key=itemgetter(1), reverse=True)
         clusters_top_terms.append([(features[token[0]], token[1]) for token in weights[:10]])
 
+    #print(clusters_top_terms)
     print(evaluate_clusters([[label[0] for label in labels] for labels in clusters_top_terms]))
 
 
 def stem_labeling(apply_sub_clustering=False):
     """Baseline labeling"""
-    reviews = get_headphone_reviews()
+    reviews = get_reviews()
     tfidf_vectorizer = TfidfVectorizer(stop_words=STOPWORDS, tokenizer=utils.stem_tokenizer)
     tfidf_vectorizer.fit(reviews)
     features = tfidf_vectorizer.get_feature_names()
 
-    clusters = list(get_headphone_clusters())
+    clusters = list(get_clusters())
     del clusters[-1]
 
     if apply_sub_clustering:
@@ -92,7 +124,17 @@ def stem_labeling(apply_sub_clustering=False):
         clusters_labels = [get_labels(cluster, clusters_top_terms[cluster_index]) for cluster_index, cluster in
                            enumerate(clusters)]
 
+    print_result(clusters_labels)
     print(evaluate_clusters([[label[0] for label in labels] for labels in clusters_labels]))
+
+
+def print_result(clusters: List[List[str]]):
+    for terms in clusters:
+        terms_text = ""
+        for term in terms:
+            # terms_text += "{} ({}), ".format(term[0], format(term[1], ".6f"))
+            terms_text += "{}, ".format(term[0])
+        print(terms_text.rstrip(", ") + " \\\\\\hline")
 
 
 def __combine_terms(sub_clusters_top_terms, sub_clusters_size_ratio):
@@ -173,7 +215,7 @@ def sub_clustering(sentences):
 def textrank_labeling(apply_sub_clustering=False):
     """Labeling using textrank"""
     from summa import keywords_custom as keywords
-    clusters = list(get_headphone_clusters())
+    clusters = list(get_clusters())
     del clusters[-1]
 
     if apply_sub_clustering:
@@ -204,13 +246,14 @@ def textrank_labeling(apply_sub_clustering=False):
         clusters_labels = [get_labels(cluster, clusters_top_terms[cluster_index]) for cluster_index, cluster in
                            enumerate(clusters)]
 
-    print(clusters_labels)
+    print_result(clusters_labels)
+    #print(clusters_labels)
     print(evaluate_clusters([[label[0] for label in labels] for labels in clusters_labels]))
 
 
 def combined_w2v_labeling(apply_sub_clustering=False):
     """Combine words with w2v for labeling"""
-    reviews = get_headphone_reviews()
+    reviews = get_reviews()
     count_vectorizer = CountVectorizer(stop_words=STOPWORDS, tokenizer=valid_words_tokenizer)
     count_vectorizer.fit(reviews)
     features = count_vectorizer.get_feature_names()
@@ -228,7 +271,7 @@ def combined_w2v_labeling(apply_sub_clustering=False):
     tfidf_vectorizer = TfidfTransformer()
     tfidf_vectorizer.fit(df_pipeline.transform(reviews))
 
-    clusters = list(get_headphone_clusters())
+    clusters = list(get_clusters())
     del clusters[-1]
 
     if apply_sub_clustering:
@@ -260,19 +303,20 @@ def combined_w2v_labeling(apply_sub_clustering=False):
                            cluster_index, cluster in
                            enumerate(clusters)]
 
-    print(clusters_labels)
+    print_result(clusters_labels)
+    # print(clusters_labels)
     print(evaluate_clusters([[label[0] for label in labels] for labels in clusters_labels]))
 
 
 def w2v_multiplied_labeling():
     """w2v multiplied labeling (this method is not giving a good result)"""
-    reviews = get_headphone_reviews()
+    reviews = get_reviews()
     tfidf_vectorizer = TfidfVectorizer(stop_words=STOPWORDS, tokenizer=valid_words_tokenizer)
     tfidf_vectorizer.fit(reviews)
     features = tfidf_vectorizer.get_feature_names()
     term_vectors = w2v.terms_vectors(features)
 
-    clusters = list(get_headphone_clusters())
+    clusters = list(get_clusters())
     del clusters[-1]
     text_clusters = [" ".join(cluster) for cluster in clusters]
     vectorized_clusters = tfidf_vectorizer.transform(text_clusters)
@@ -314,9 +358,10 @@ def __optimum_subcluster_count(errors: List[float], threshold=0.8) -> int:
 
 
 def evaluate_clusters(clusters_labels):
-    clusters_gold_labels = dl.load_json_from_file("../data/headphone_100_aspects.json")
+    clusters_gold_labels = get_gold_labels()
     scores = [evaluate_single_cluster(labels, clusters_gold_labels[cluster_index]) for cluster_index, labels in
               enumerate(clusters_labels)]
+    #print(scores)
     return sum(scores) / len(clusters_labels)
 
 
@@ -324,3 +369,7 @@ def evaluate_single_cluster(generated_labels: List[str], gold_labels: List[str])
     return sum(
         max(w2v.similarity(label, gold_label) for gold_label in gold_labels) for label in generated_labels) / len(
         generated_labels)
+
+
+if __name__ == "__main__":
+    baseline_labeling()

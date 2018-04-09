@@ -92,13 +92,14 @@ def evaluate_clustering():
 def evaluate_manual_clusters():
     data = dl.load_json_from_file("../data/headphone_100_clusters.json")
     clusters = [cluster[0] for cluster in data if cluster[1][0] != "_misc"]
+    #print(sum([len(cl) for cl in clusters]))
 
     ssse = 0
     for cluster in clusters:
         sentences = [sent for sent in cluster if w2v.valid_words(utils.word_tokenizer(sent))]
         sentences_tokens = [w2v.valid_words(utils.word_tokenizer(sent)) for sent in sentences]
         sentences_vectors = [w2v.sum_terms_vector(sent) for sent in sentences_tokens]
-        #print(utils.ClusterAnalysis(sentences_vectors).mse)
+        # print(utils.ClusterAnalysis(sentences_vectors).mse)
         ssse += utils.ClusterAnalysis(sentences_vectors).sse
 
     print("SSE:", ssse)

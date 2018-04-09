@@ -1,0 +1,8 @@
+gensim
+sklearn
+numpy
+scipy
+spacy
+nltk
+textblob
+summa

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+#
+# This script used for combined Word2vec based tf-idf labeling
+##
 import operator
 from typing import List, Callable
 

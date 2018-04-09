@@ -7,9 +7,9 @@ import json
 from collections import Counter
 from pprint import pprint
 
-from nltk.stem import PorterStemmer
+#from nltk.stem import PorterStemmer
 
-PS = PorterStemmer()
+#PS = PorterStemmer()
 
 
 def load_file(file_path):
@@ -78,7 +78,7 @@ class Annotation:
         pprint(Counter(clusters_counts))
         print("SentCounts:", len(sentences), sum(counts for counts in clusters_counts.values()))
         print("ClusterCount:", len(clusters))
-        self._write_clusters(clusters)
+        #self._write_clusters(clusters)
 
     def _write_clusters(self, clusters):
         """Write clusters to the file"""
@@ -108,6 +108,6 @@ def _sentence_index_to_aspects(aspects, _idx):
 
 
 if __name__ == "__main__":
-    annotation = Annotation("headphone_100", "../data/")
-    # annotation.show_manual_aspects()
-    annotation.aspects_to_clusters()
+    annotation = Annotation("kindle_500", "../data/")
+    annotation.show_manual_aspects()
+    #annotation.aspects_to_clusters()

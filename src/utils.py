@@ -71,10 +71,17 @@ def stem_tokenizer(text: str) -> List[Word]:
 
 
 def stem(word: str):
+    """Return stem of the word"""
     return POTER_STEMMER.stem(word)
 
 
+def noun_phrase_tokenizer(text: str) -> List[str]:
+    """Tokenize text by noun_phrases with stopwords removed"""
+    return filter_terms([chunk.text.lower() for chunk in NLP(text).noun_chunks])
+
+
 def noun_phrases(docs: List[str]) -> List[str]:
+    """Return list of noun_phrases from list of text with stopwords removed"""
     _noun_phrases = [chunk.text.lower() for doc in docs for chunk in NLP(doc).noun_chunks]
     return filter_terms(_noun_phrases)
 
